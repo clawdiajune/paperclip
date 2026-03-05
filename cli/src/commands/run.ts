@@ -10,6 +10,7 @@ import {
   describeLocalInstancePaths,
   resolvePaperclipHomeDir,
   resolvePaperclipInstanceId,
+  resolveDefaultConfigPath,
 } from "../config/home.js";
 
 interface RunOptions {
@@ -29,7 +30,14 @@ export async function runCommand(opts: RunOptions): Promise<void> {
   const paths = describeLocalInstancePaths(instanceId);
   fs.mkdirSync(paths.instanceRoot, { recursive: true });
 
-  const configPath = resolveConfigPath(opts.config);
+  // Derive config path from the resolved instanceId when no explicit --config is
+  // given. We bypass resolveConfigPath()'s ambient-env-var logic here because
+  // the caller's environment may have PAPERCLIP_CONFIG pointing to a *different*
+  // instance (e.g. the agent runtime sets it to the default instance), which
+  // would override -i / --instance silently.
+  const configPath = opts.config
+    ? resolveConfigPath(opts.config)
+    : resolveDefaultConfigPath(instanceId);
   process.env.PAPERCLIP_CONFIG = configPath;
 
   p.intro(pc.bgCyan(pc.black(" paperclipai run ")));
